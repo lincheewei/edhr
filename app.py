@@ -9,7 +9,7 @@ import os
 DB_HOST = "ls-2867d292ceed2c7ab16125c87c3b818f75a73a16.cw80mnlb8rfq.ap-southeast-1.rds.amazonaws.com"
 DB_USER = "yollinkAdmin"
 DB_PASSWORD = "yollinkAdmin"
-DB_DATABASE = "dbyollink"
+DB_DATABASE = "jof_simulation"
 VALID_ACCESS_TOKEN = "testing123"
 
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:3306/{DB_DATABASE}"
@@ -19,23 +19,21 @@ Base = declarative_base()
 
 
 # -------------------------
-# DB Model (core fields only)
+# DB Model - Matches your updated table structure exactly
 # -------------------------
 class BatchMaster(Base):
     __tablename__ = "batch_master"
 
-    order_id = Column(Integer)
-    plant = Column(String(50))
-    customer = Column(String(255))
-    bay = Column(String(255))
-    status = Column(String(50))
-    job_number = Column(String(50))
-    batch_number = Column(String(50), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    batch = Column(String(50), unique=True, nullable=False)
+    part_number = Column(String(100))
+    revision = Column(String(50))
     quantity = Column(Integer)
+    bay = Column(String(255))
     projected_start = Column(DateTime)
-    projected_end = Column(DateTime)
+    projected_stop = Column(DateTime)
     units_completed = Column(Integer)
-    rev = Column(String(50))
+    status = Column(String(50))
     active = Column(Boolean)
 
 
@@ -55,16 +53,16 @@ app = FastAPI()
 
 
 def batch_to_dict(b: BatchMaster):
-    """Map DB row → API response"""
+    """Convert DB row to exact JSON format"""
     return {
-        "id": b.order_id,
-        "batch": b.batch_number,
-        "part number": b.job_number,
-        "revision": b.rev,
+        "id": b.id,
+        "batch": b.batch,
+        "part number": b.part_number,
+        "revision": b.revision,
         "quantity": b.quantity,
         "bay": b.bay,
         "projected start": b.projected_start.strftime("%Y-%m-%d %H:%M:%S") if b.projected_start else None,
-        "projected stop": b.projected_end.strftime("%Y-%m-%d %H:%M:%S") if b.projected_end else None,
+        "projected stop": b.projected_stop.strftime("%Y-%m-%d %H:%M:%S") if b.projected_stop else None,
         "units completed": b.units_completed,
         "status": b.status,
         "active": bool(b.active) if b.active is not None else None
@@ -89,7 +87,7 @@ def lookup_batch(payload: dict, token: str = Depends(verify_token)):
 
     db = SessionLocal()
     try:
-        b = db.query(BatchMaster).filter(BatchMaster.batch_number == batch_no).first()
+        b = db.query(BatchMaster).filter(BatchMaster.batch == batch_no).first()
         if not b:
             raise HTTPException(status_code=404, detail="Batch not found")
         return batch_to_dict(b)
