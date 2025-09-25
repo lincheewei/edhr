@@ -23,7 +23,6 @@ Base = declarative_base()
 # -------------------------
 class BatchMaster(Base):
     __tablename__ = "batch_master"
-
     id = Column(Integer, primary_key=True)
     batch = Column(String(50), unique=True, nullable=False)
     part_number = Column(String(100))
@@ -61,6 +60,7 @@ def batch_to_dict(b: BatchMaster):
         "revision": b.revision,
         "quantity": b.quantity,
         "bay": b.bay,
+        "line": b.bay,  # ✅ Add line field (same as bay for testing)
         "projected start": b.projected_start.strftime("%Y-%m-%d %H:%M:%S") if b.projected_start else None,
         "projected stop": b.projected_stop.strftime("%Y-%m-%d %H:%M:%S") if b.projected_stop else None,
         "units completed": b.units_completed,
@@ -74,9 +74,11 @@ def get_batches(token: str = Depends(verify_token)):
     db = SessionLocal()
     try:
         batches = db.query(BatchMaster).all()
-        return [batch_to_dict(b) for b in batches]
+        return [batch_to_dict(b) for b in batches]  # ✅ Already returns list
     finally:
         db.close()
+
+
 
 
 @app.post("/batch_masters/lookup")
@@ -90,6 +92,8 @@ def lookup_batch(payload: dict, token: str = Depends(verify_token)):
         b = db.query(BatchMaster).filter(BatchMaster.batch == batch_no).first()
         if not b:
             raise HTTPException(status_code=404, detail="Batch not found")
-        return batch_to_dict(b)
+
+        # ✅ Return as list instead of single dict
+        return [batch_to_dict(b)]
     finally:
         db.close()
