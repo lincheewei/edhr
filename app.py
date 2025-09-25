@@ -25,6 +25,7 @@ class BatchMaster(Base):
     __tablename__ = "batch_master"
     id = Column(Integer, primary_key=True)
     batch = Column(String(50), unique=True, nullable=False)
+    customer = Column(String(255))  # ✅ NEW FIELD
     part_number = Column(String(100))
     revision = Column(String(50))
     quantity = Column(Integer)
@@ -56,11 +57,12 @@ def batch_to_dict(b: BatchMaster):
     return {
         "id": b.id,
         "batch": b.batch,
+        "customer": b.customer,   # ✅ NEW FIELD
         "part number": b.part_number,
         "revision": b.revision,
         "quantity": b.quantity,
         "bay": b.bay,
-        "line": b.bay,  # ✅ Add line field (same as bay for testing)
+        "line": b.bay,  # mapped same as bay for now
         "projected start": b.projected_start.strftime("%Y-%m-%d %H:%M:%S") if b.projected_start else None,
         "projected stop": b.projected_stop.strftime("%Y-%m-%d %H:%M:%S") if b.projected_stop else None,
         "units completed": b.units_completed,
